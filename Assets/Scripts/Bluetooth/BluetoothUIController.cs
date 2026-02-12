@@ -5,56 +5,63 @@ using System.Collections.Generic;
 
 public class BluetoothUIController : MonoBehaviour
 {
-    public LinuxBluetoothScanner scanner;
-    public LinuxBluetoothConnector connector;
+  public LinuxBluetoothScanner scanner;
+  public LinuxBluetoothConnector connector;
 
-    public Button scanButton;
-    public Transform listParent;
-    public GameObject buttonPrefab;
-    public TextMeshProUGUI statusText;
+  public Button scanButton;
+  public Transform listParent;
+  public GameObject buttonPrefab;
+  public TextMeshProUGUI statusText;
 
-    void Start()
+  void Start()
+  {
+    scanButton.onClick.AddListener(() =>
     {
-        scanButton.onClick.AddListener(() =>
-        {
-            statusText.text = "Scanning...";
-            ClearList();
-            StartCoroutine(scanner.Scan(OnScanComplete));
-        });
+      statusText.text = "Scanning...";
+      ClearList();
+      StartCoroutine(scanner.Scan(OnScanComplete));
+    });
+  }
+
+  void OnScanComplete(List<BluetoothDevice> devices)
+  {
+    if (devices.Count == 0)
+    {
+      statusText.text = "No Devices Found";
+      return;
     }
 
-    void OnScanComplete(List<BluetoothDevice> devices)
+    statusText.text = "Select Device";
+
+    foreach (BluetoothDevice device in devices)
     {
-        if (devices.Count == 0)
-        {
-            statusText.text = "No Devices Found";
-            return;
-        }
+      GameObject buttonObj = Instantiate(buttonPrefab, listParent);
+      buttonObj.GetComponentInChildren<TextMeshProUGUI>().text = device.Name;
 
-        statusText.text = "Select Device";
-
-        foreach (BluetoothDevice device in devices)
-        {
-            GameObject buttonObj = Instantiate(buttonPrefab, listParent);
-            buttonObj.GetComponentInChildren<TextMeshProUGUI>().text = device.Name;
-
-            Button btn = buttonObj.GetComponent<Button>();
-            btn.onClick.AddListener(() =>
-            {
-                statusText.text = "Connecting...";
-                StartCoroutine(connector.Connect(device.Mac, OnConnectComplete));
-            });
-        }
+      Button btn = buttonObj.GetComponent<Button>();
+      btn.onClick.AddListener(() =>
+      {
+        statusText.text = "Connecting...";
+        StartCoroutine(connector.Connect(device.Mac, OnConnectComplete));
+      });
     }
+  }
 
-    void OnConnectComplete(string result)
-    {
-        statusText.text = result;
-    }
+  private string RemoveAnsi(string input)
+  {
+    return System.Text.RegularExpressions.Regex
+        .Replace(input, @"\x1B\[[0-9;]*[mK]", "");
+  }
 
-    void ClearList()
-    {
-        foreach (Transform child in listParent)
-            Destroy(child.gameObject);
-    }
+  void OnConnectComplete(string result)
+  {
+    result = RemoveAnsi(result);
+    statusText.text = result;
+  }
+
+  void ClearList()
+  {
+    foreach (Transform child in listParent)
+      Destroy(child.gameObject);
+  }
 }
