@@ -1,34 +1,49 @@
 using UnityEngine;
-using System;
-using System.Diagnostics;
-using Debug = UnityEngine.Debug;
+using System.Collections;
+using System.Collections.Generic;
 
 public class LinuxWifiScanner : MonoBehaviour
 {
-    public string Scan()
+  [SerializeField] private string scriptPath = "/usr/local/bin/wifi_scan.sh";
+
+  public IEnumerator Scan(System.Action<List<WifiNetwork>> callback)
+  {
+    yield return null;
+
+    string result = LinuxProcessBridge.Run(scriptPath);
+    List<WifiNetwork> networks = Parse(result);
+
+    callback?.Invoke(networks);
+  }
+
+  private List<WifiNetwork> Parse(string raw)
+  {
+    List<WifiNetwork> networks = new List<WifiNetwork>();
+    string[] lines = raw.Split('\n');
+
+    foreach (string line in lines)
     {
-#if UNITY_STANDALONE_LINUX
-        string home = Environment.GetFolderPath(
-            Environment.SpecialFolder.UserProfile);
+      if (string.IsNullOrWhiteSpace(line)) continue;
 
-        string script = System.IO.Path.Combine(home, "wifi_scan.sh");
-
-        ProcessStartInfo psi = new ProcessStartInfo
+      string[] parts = line.Split(':');
+      if (parts.Length >= 3)
+      {
+        networks.Add(new WifiNetwork
         {
-            FileName = "bash",
-            Arguments = script,
-            UseShellExecute = false,
-            RedirectStandardOutput = true,
-            CreateNoWindow = true
-        };
-
-        using Process p = Process.Start(psi);
-        string output = p.StandardOutput.ReadToEnd();
-        p.WaitForExit();
-
-        return output;
-#else
-        return "";
-#endif
+          SSID = parts[0],
+          Signal = parts[1],
+          Security = parts[2]
+        });
+      }
     }
+
+    return networks;
+  }
+}
+
+public class WifiNetwork
+{
+  public string SSID;
+  public string Signal;
+  public string Security;
 }

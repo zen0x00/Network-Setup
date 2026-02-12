@@ -1,26 +1,16 @@
 #!/bin/bash
 
 SSID="$1"
-PASSWORD="$2"
+PASS="$2"
 
-if [ -z "$SSID" ]; then
-    echo "ERROR: SSID missing"
-    exit 1
-fi
+OUTPUT=$(nmcli device wifi connect "$SSID" password "$PASS" 2>&1)
 
-if [ -z "$PASSWORD" ]; then
-    nmcli device wifi connect "$SSID"
+if echo "$OUTPUT" | grep -q "successfully activated"; then
+    echo "Connected"
+elif echo "$OUTPUT" | grep -q "No network with SSID"; then
+    echo "Network Not Found"
+elif echo "$OUTPUT" | grep -q "Secrets were required"; then
+    echo "Wrong Password"
 else
-    nmcli device wifi connect "$SSID" password "$PASSWORD"
-fi
-
-sleep 2
-
-ping -c 1 -W 2 8.8.8.8 > /dev/null 2>&1
-if [ $? -eq 0 ]; then
-    echo "SUCCESS"
-    exit 0
-else
-    echo "FAILED"
-    exit 1
+    echo "Connection Failed"
 fi

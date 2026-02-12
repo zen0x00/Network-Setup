@@ -1,34 +1,17 @@
 using UnityEngine;
-using System;
-using System.Diagnostics;
-using Debug = UnityEngine.Debug;
+using System.Collections;
 
 public class LinuxWifiConnector : MonoBehaviour
 {
-    public bool Connect(string ssid, string password)
-    {
-#if UNITY_STANDALONE_LINUX
-        string home = Environment.GetFolderPath(
-            Environment.SpecialFolder.UserProfile);
+  [SerializeField] private string scriptPath = "/usr/local/bin/wifi_connect.sh";
 
-        string script = System.IO.Path.Combine(home, "wifi_connect.sh");
+  public IEnumerator Connect(string ssid, string password, System.Action<string> callback)
+  {
+    yield return null;
 
-        ProcessStartInfo psi = new ProcessStartInfo
-        {
-            FileName = "bash",
-            Arguments = $"\"{script}\" \"{ssid}\" \"{password}\"",
-            UseShellExecute = false,
-            RedirectStandardOutput = true,
-            CreateNoWindow = true
-        };
+    string arguments = $"\"{ssid}\" \"{password}\"";
+    string result = LinuxProcessBridge.Run(scriptPath, arguments).Trim();
 
-        using Process p = Process.Start(psi);
-        string result = p.StandardOutput.ReadToEnd();
-        p.WaitForExit();
-
-        return result.Contains("SUCCESS");
-#else
-        return false;
-#endif
-    }
+    callback?.Invoke(result);
+  }
 }
