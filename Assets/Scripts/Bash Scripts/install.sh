@@ -50,7 +50,7 @@ install_packages
 enable_bluetooth
 
 # Copy scripts
-SCRIPTS=(wifi*.sh bluetooth*.sh audio*.sh)
+SCRIPTS=(wifi*.sh bluetooth*.sh audio*.sh power*.sh)
 
 FOUND=0
 
